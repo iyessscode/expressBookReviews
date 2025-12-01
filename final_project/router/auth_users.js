@@ -44,17 +44,6 @@ regd_users.post('/login', (req, res) => {
 });
 
 // Add a book review
-/**
- * Requirements:
- * 1. Review text comes from req.query.review
- * 2. Username comes from req.session.authorization.username
- * 3. Review goes into books[isbn].reviews[username]
- * 4. If user already reviewed the same book → overwrite
- * 5. If not → create new
- * 6. If book doesn’t exist → return 404
- * 7. Must respond with a proper success message
- *
- */
 regd_users.put('/auth/review/:isbn', (req, res) => {
 	const isbn = req.params.isbn;
 	const review = req.query.review;
@@ -77,12 +66,37 @@ regd_users.put('/auth/review/:isbn', (req, res) => {
 
 	book.reviews[username] = review;
 
-	return res
-		.status(200)
-		.json({
-			message: 'Review added/updated successfully',
-			reviews: book.reviews,
-		});
+	return res.status(200).json({
+		message: 'Review added/updated successfully',
+		reviews: book.reviews,
+	});
+});
+
+regd_users.delete('/auth/review/:isbn', (req, res) => {
+	const isbn = req.params.isbn;
+	const username = req.session.authorization.username;
+
+	if (!username) {
+		return res.status(403).json({ message: 'User not logged in' });
+	}
+
+	const book = books[isbn];
+	if (!book) {
+		return res.status(404).json({ message: 'Book not found' });
+	}
+
+	if (!book.reviews[username]) {
+		return res
+			.status(404)
+			.json({ message: 'You have not posted any review for this book' });
+	}
+
+	delete book.reviews[username];
+
+	return res.status(200).json({
+		message: 'Your review has been deleted',
+		reviews: book.reviews,
+	});
 });
 
 module.exports.authenticated = regd_users;
